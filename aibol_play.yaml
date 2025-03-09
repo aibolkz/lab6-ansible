@@ -1,0 +1,118 @@
+---
+- name: FIFA Server Configuration
+  hosts: remote_servers
+  become: yes
+  tasks:
+
+    #obj3.1
+    - name: Install required packages
+      apt:
+        name:
+          - ftp
+          - apache2
+          - python3-pip
+          - expect
+        state: present
+      loop:
+        - ftp
+        - apache2
+        - python3-pip
+        - expect
+
+    #Obj3.2
+    - name: Create groups
+      group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - Attack
+        - Defense
+        - Captain
+
+    - name: Create users and assign to groups
+      user:
+        name: "{{ item.name }}"
+        groups: "{{ item.groups }}"
+        append: yes
+      loop:
+        - { name: 'hkewell', groups: 'Attack' }
+        - { name: 'mowen', groups: 'Defense' }
+        - { name: 'jcarra', groups: 'Defense' }
+        - { name: 'dagger', groups: 'Defense' }
+        - { name: 'sgerrard', groups: 'Captain,Defense' }
+        - { name: 'lfigo', groups: 'Attack' }
+        - { name: 'rsoldado', groups: 'Defense' }
+        - { name: 'rcarlos', groups: 'Defense' }
+        - { name: 'fcannavaro', groups: 'Defense' }
+        - { name: 'zzidane', groups: 'Captain,Defense' }
+
+    - name: Set permissions for user groups
+      file:
+        path: "/home/{{ item.name }}"
+        owner: "{{ item.name }}"
+        group: "{{ item.groups.split(',')[0] }}"
+        mode: "{{ item.perm }}"
+      loop:
+        - { name: 'hkewell', perm: '0666' }
+        - { name: 'mowen', perm: '0111' }
+        - { name: 'jcarra', perm: '0111' }
+        - { name: 'dagger', perm: '0111' }
+        - { name: 'sgerrard', perm: '0777' }
+        - { name: 'lfigo', perm: '0666' }
+        - { name: 'rsoldado', perm: '0111' }
+        - { name: 'rcarlos', perm: '0111' }
+        - { name: 'fcannavaro', perm: '0111' }
+        - { name: 'zzidane', perm: '0777' }
+
+    ##Obj3.3
+    - name: Create Route_Info directory
+      file:
+        path: "/{{ inventory_hostname }}_Admin/Route_Info/"
+        state: directory
+        owner: "sgerrard" 
+        group: "Captain"
+        mode: "0770"
+
+    - name: create Captain_Details.txt
+      copy:
+        dest: "/{{ inventory_hostname }}_Admin/Route_Info/Captain_Details.txt"
+        content: |
+          Full Name: Steven Gerrard (for Liverpool)
+          Nationality: England
+          Username: sgerrard
+        owner: "sgerrard"
+        group: "Captain"
+        mode: "0644"
+
+    #Obj3.4
+    - name: Route table
+      shell: netstat -r > /tmp/route_table.txt
+
+    - name: top10 memory-consuming processes
+      shell: ps aux --sort=-%mem | head -10 > /tmp/top_processes.txt
+
+    - name: transfer files to netman main vm 
+      expect:
+        command: scp /tmp/route_table.txt /tmp/top_processes.txt netman@10.224.76.222:/home/netman/
+        responses:
+          "password:": "netman"
+
+
+    #3.5 ssh part
+    - name: SSH keys into one file
+      assemble:
+        src: /home/{{ item }}/.ssh/
+        dest: "/root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt"
+      loop:
+        - "mowen"
+        - "dagger"
+        - "sgerrard"
+        - "lfigo"
+        - "fcannavaro"
+        - "zzidane"
+
+    - name: Copy Keys to netman main VM
+      expect:
+        command: scp "/root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt" netman@10.224.76.222:/root/.ssh/
+        responses:
+          "password:": "netman"
