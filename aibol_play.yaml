@@ -1,11 +1,11 @@
 ---
-- name: FIFA Server Configuration
+- name: FIFA Configuration for two vms
   hosts: remote_servers
   become: yes
   tasks:
 
     #obj3.1
-    - name: Install required packages
+    - name: Install packages
       apt:
         name:
           - ftp
@@ -46,7 +46,7 @@
         - { name: 'fcannavaro', groups: 'Defense' }
         - { name: 'zzidane', groups: 'Captain,Defense' }
 
-    - name: Set permissions for user groups
+    - name: Set permissions
       file:
         path: "/home/{{ item.name }}"
         owner: "{{ item.name }}"
