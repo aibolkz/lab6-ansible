@@ -1,0 +1,19 @@
+---
+- name: Configure Liverpool Manager
+  hosts: remote_servers
+  become: yes
+  tasks:
+
+    - name: group servers by OS versions
+      group_by:
+        key: "os_{{ ansible_os_family }}"
+
+   #
+
+    - name: Set a fact for the team manager
+      set_fact:
+        team_manager: "Jürgen Klopp"
+
+    - name: Show the team manager
+      debug:
+        msg: "Liverpool new manager is {{ team_manager }}"

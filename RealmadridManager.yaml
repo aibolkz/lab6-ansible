@@ -1,0 +1,25 @@
+---
+- name: configure Real Madrid new manager
+  hosts: remote_servers
+  become: yes
+  tasks:
+
+    - name: Real Madrid Manager
+      set_fact:
+        team_manager: "Carlo Ancelotti"
+
+    - name: apply to the template
+      template:
+        src: "/home/netman/lab6-ansible/templates/readmadrid_config.j2"
+        dest: /home/student/real_madrid_config.txt
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: show the created file
+      command: cat /home/student/real_madrid_config.txt
+      register: config_output
+
+    - name: print the created config file
+      debug:
+        msg: "{{ config_output.stdout }}"
