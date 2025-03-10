@@ -50,19 +50,20 @@
       file:
         path: "/home/{{ item.name }}"
         owner: "{{ item.name }}"
-        group: "{{ item.groups.split(',')[0] }}"
+        group: "{{ item.group }}" 
         mode: "{{ item.perm }}"
       loop:
-        - { name: 'hkewell', perm: '0666' }
-        - { name: 'mowen', perm: '0111' }
-        - { name: 'jcarra', perm: '0111' }
-        - { name: 'dagger', perm: '0111' }
-        - { name: 'sgerrard', perm: '0777' }
-        - { name: 'lfigo', perm: '0666' }
-        - { name: 'rsoldado', perm: '0111' }
-        - { name: 'rcarlos', perm: '0111' }
-        - { name: 'fcannavaro', perm: '0111' }
-        - { name: 'zzidane', perm: '0777' }
+        - { name: 'hkewell', group: 'Attack', perm: '0666' }
+        - { name: 'mowen', group: 'Defense', perm: '0111' }
+        - { name: 'jcarra', group: 'Defense', perm: '0111' }
+        - { name: 'dagger', group: 'Defense', perm: '0111' }
+        - { name: 'sgerrard', group: 'Captain', perm: '0777' }
+        - { name: 'lfigo', group: 'Attack', perm: '0666' }
+        - { name: 'rsoldado', group: 'Defense', perm: '0111' }
+        - { name: 'rcarlos', group: 'Defense', perm: '0111' }
+        - { name: 'fcannavaro', group: 'Defense', perm: '0111' }
+        - { name: 'zzidane', group: 'Captain', perm: '0777' }
+
 
     ##Obj3.3
     - name: Create Route_Info directory
@@ -85,34 +86,42 @@
         mode: "0644"
 
     #Obj3.4
+    - name: Install net-tools
+      apt:
+        name: net-tools
+        state: present
+      become: yes
+
     - name: Route table
-      shell: netstat -r > /tmp/route_table.txt
+      shell: netstat -r > /tmp/{{ inventory_hostname }}_route_table.txt
 
     - name: top10 memory-consuming processes
-      shell: ps aux --sort=-%mem | head -10 > /tmp/top_processes.txt
+      shell: ps aux --sort=-%mem | head -11 > /tmp/{{ inventory_hostname }}_top_processes.txt
 
     - name: transfer files to netman main vm 
       expect:
-        command: scp /tmp/route_table.txt /tmp/top_processes.txt netman@10.224.76.222:/home/netman/
+        command: scp /tmp/{{ inventory_hostname }}_route_table.txt /tmp/{{ inventory_hostname }}_top_processes.txt netman@10.224.76.222:/home/netman/lab6-ansible
         responses:
           "password:": "netman"
 
 
     #3.5 ssh part
-    - name: SSH keys into one file
-      assemble:
-        src: /home/{{ item }}/.ssh/
-        dest: "/root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt"
+    - name: Collect and assemble ssh public keys into a single file
+      shell: "cat /home/{{ item }}/.ssh/id_rsa.pub >> /root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt"
+      become: yes
       loop:
-        - "mowen"
-        - "dagger"
-        - "sgerrard"
-        - "lfigo"
-        - "fcannavaro"
-        - "zzidane"
-
-    - name: Copy Keys to netman main VM
+        - mowen
+        - dagger
+        - sgerrard
+        - lfigo
+        - fcannavaro
+        - zzidane
+    #- name: Ensure only public keys are in authorizedKeys files
+    #  shell: "grep '^ssh-rsa' /root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt > /root/.ssh/tmp_keys && mv /root/.ssh/tmp_keys /root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt"
+    #  become: yes
+    - name: Copy keys to main VM
       expect:
-        command: scp "/root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt" netman@10.224.76.222:/root/.ssh/
+        command: scp "/root/.ssh/{{ inventory_hostname }}_authorizedKeys.txt" netman@10.224.76.222:/home/netman/lab6-ansible/
         responses:
           "password:": "netman"
+
