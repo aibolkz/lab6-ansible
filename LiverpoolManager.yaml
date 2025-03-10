@@ -8,7 +8,12 @@
       group_by:
         key: "os_{{ ansible_os_family }}"
 
-   #
+    - name: wating ssh is available
+      wait_for:
+        port: 22
+        host: "{{ ansible_host | default('localhost') }}"
+        timeout: 10
+
 
     - name: Set a fact for the team manager
       set_fact:
@@ -17,3 +22,4 @@
     - name: Show the team manager
       debug:
         msg: "Liverpool new manager is {{ team_manager }}"
+...

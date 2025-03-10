@@ -1,0 +1,5 @@
+---
+- import_playbook: aibol_play.yaml
+- import_playbook: LiverpoolManager.yaml
+- import_playbook: RealmadridManager.yaml
+...

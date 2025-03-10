@@ -1,4 +1,7 @@
 ---
+
+
+
 - name: FIFA Configuration for two vms
   hosts: remote_servers
   become: yes
@@ -125,3 +128,8 @@
         responses:
           "password:": "netman"
 
+    - name: Import playBooks extra
+      debug:
+        msg: "import 2 extra yaml files"
+        
+...
