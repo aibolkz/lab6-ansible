@@ -1,0 +1,65 @@
+---
+- name: BGP configuration
+  hosts: routers
+  gather_facts: no
+  tasks:
+  
+
+
+    - name: iBGP  router and as numbers btw router 1 and 2
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
+        lines:
+          - "bgp router-id {{ ansible_host }}"
+      when: ansible_network_os == "ios"
+
+    - name: configure BGP Neighbors on R1
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
+        lines:
+          - "neighbor 198.51.100.20 remote-as 100"
+          - "neighbor 198.51.100.20 update-source Loopback1"
+          - "neighbor 20.20.20.1 remote-as 100"
+          - "neighbor 22.22.22.1 remote-as 100"
+          - "neighbor 20.20.20.1 next-hop-self"
+          - "neighbor 22.22.22.1 next-hop-self"
+          - "network 10.10.10.1 mask 255.255.255.255"
+          - "network 11.11.11.1 mask 255.255.255.255"
+      when: ansible_host == "198.51.100.10"
+
+    - name: conf BGP neighbors on R2
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
+        lines:
+          - "neighbor 198.51.100.10 remote-as 100"
+          - "neighbor 198.51.100.10 update-source Loopback1"
+          - "neighbor 10.10.10.1 remote-as 100"
+          - "neighbor 10.10.10.1 next-hop-self"
+          - "neighbor 11.11.11.1 remote-as 100"
+          - "neighbor 11.11.11.1 next-hop-self"
+          - "network 20.20.20.1 mask 255.255.255.255"
+          - "network 22.22.22.1 mask 255.255.255.255"
+
+      when: ansible_host == "198.51.100.20"
+
+    - name: Advertise Networks
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
+        lines:
+          - "network 198.51.100.0 mask 255.255.255.0"
+      when: ansible_network_os == "ios"
+
+    - name: Save Running Config
+      cisco.ios.ios_command:
+        commands:
+          - "write memory"
+
+    - name: Verify BGP Peering
+      cisco.ios.ios_command:
+        commands:
+          - "show ip bgp summary"
+      register: bgp_output
+
+    - name: Display IBGP Peering Status
+      debug:
+        msg: "{{ bgp_output.stdout_lines }}"
