@@ -1,55 +1,61 @@
 ---
-- name: Configure IBGP on Cisco Routers
+- name: BGP configuration
   hosts: routers
   gather_facts: no
   tasks:
+  
 
-    - name: Configure IBGP - Router ID and AS
-      ios_config:
+
+    - name: iBGP  router and as numbers btw router 1 and 2
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
         lines:
-          - "router bgp 100"
           - "bgp router-id {{ ansible_host }}"
       when: ansible_network_os == "ios"
 
-    - name: Configure IBGP Neighbors
-      ios_config:
+    - name: configure BGP Neighbors on R1
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
         lines:
-          - "router bgp 100"
-          - "neighbor 198.51.100.3 remote-as 100"
+          - "neighbor 198.51.100.20 remote-as 100"
+          - "neighbor 198.51.100.20 update-source Loopback1"
           - "neighbor 20.20.20.1 remote-as 100"
           - "neighbor 22.22.22.1 remote-as 100"
-          - "neighbor 198.51.100.3 update-source Loopback0"
-          - "neighbor 20.20.20.1 update-source Loopback0"
-          - "neighbor 22.22.22.1 update-source Loopback0"
-      when: ansible_network_os == "ios"
+          - "neighbor 20.20.20.1 next-hop-self"
+          - "neighbor 22.22.22.1 next-hop-self"
+          - "network 10.10.10.1 mask 255.255.255.255"
+          - "network 11.11.11.1 mask 255.255.255.255"
+      when: ansible_host == "198.51.100.10"
 
-    - name: Configure IBGP Neighbors on R2
-      ios_config:
+    - name: conf BGP neighbors on R2
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
         lines:
-          - "router bgp 100"
-          - "neighbor 198.51.100.1 remote-as 100"
+          - "neighbor 198.51.100.10 remote-as 100"
+          - "neighbor 198.51.100.10 update-source Loopback1"
           - "neighbor 10.10.10.1 remote-as 100"
+          - "neighbor 10.10.10.1 next-hop-self"
           - "neighbor 11.11.11.1 remote-as 100"
-          - "neighbor 198.51.100.1 update-source Loopback0"
-          - "neighbor 10.10.10.1 update-source Loopback0"
-          - "neighbor 11.11.11.1 update-source Loopback0"
-      when: ansible_host == "198.51.100.3"
+          - "neighbor 11.11.11.1 next-hop-self"
+          - "network 20.20.20.1 mask 255.255.255.255"
+          - "network 22.22.22.1 mask 255.255.255.255"
+
+      when: ansible_host == "198.51.100.20"
 
     - name: Advertise Networks
-      ios_config:
+      cisco.ios.ios_config:
+        parents: "router bgp 100"
         lines:
-          - "router bgp 100"
-          - "network 10.0.0.0 mask 255.255.255.0"
-          - "network 192.168.1.0 mask 255.255.255.0"
+          - "network 198.51.100.0 mask 255.255.255.0"
       when: ansible_network_os == "ios"
 
     - name: Save Running Config
-      ios_command:
+      cisco.ios.ios_command:
         commands:
           - "write memory"
 
     - name: Verify BGP Peering
-      ios_command:
+      cisco.ios.ios_command:
         commands:
           - "show ip bgp summary"
       register: bgp_output
